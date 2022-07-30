@@ -125,7 +125,11 @@ func FindTrains(departureStation, arrivalStation, criteria string) (Trains, erro
 	trains = importData()
 	trains = selectAndSortTrains(trains, arrival, departure, criteria)
 
-	return trains, nil // маєте повернути правильні значення
+	// маєте повернути правильні значення
+	if len(trains) < 1 {
+		return nil, nil
+	}
+	return trains, nil
 }
 
 func readUserInput() (userInput string) {
@@ -143,6 +147,9 @@ func importData() (importedData Trains) {
 	}
 
 	err = json.Unmarshal(file, &importedData)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return importedData
 }
