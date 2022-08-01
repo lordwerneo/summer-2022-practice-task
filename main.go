@@ -76,7 +76,6 @@ func main() {
 		criteria         string
 		result           []Train
 	)
-	//	... запит даних від користувача
 	fmt.Println("Enter departure station ID")
 	departureStation = readUserInput()
 	fmt.Println("Enter arrival station ID")
@@ -84,23 +83,20 @@ func main() {
 	fmt.Println("Enter criteria")
 	criteria = readUserInput()
 
-	//result, err := FindTrains(departureStation, arrivalStation, criteria))
 	result, err := FindTrains(departureStation, arrivalStation, criteria)
 
-	//	... обробка помилки
 	if err != nil {
 		err = fmt.Errorf("entered incorrect parameters: %w", err)
 		fmt.Println(err)
 		return
 	}
-	//	... друк result
+
 	for _, v := range result {
 		fmt.Println(v)
 	}
 }
 
 func FindTrains(departureStation, arrivalStation, criteria string) (Trains, error) {
-	// ... код
 	if err := checkCriteria(criteria); err != nil {
 		return nil, err
 	}
@@ -125,7 +121,6 @@ func FindTrains(departureStation, arrivalStation, criteria string) (Trains, erro
 	trains = importData()
 	trains = selectAndSortTrains(trains, arrival, departure, criteria)
 
-	// маєте повернути правильні значення
 	if len(trains) < 1 {
 		return nil, nil
 	}
@@ -214,7 +209,8 @@ func selectAndSortTrains(trains Trains, arrival int, departure int, criteria str
 		}
 	}
 
-	if len(sortedTrains) > 1 {
+	minimalTrainCount := 1
+	if len(sortedTrains) > minimalTrainCount {
 		switch criteria {
 		case "price":
 			sortedTrains = sortByPrice(sortedTrains)
@@ -226,9 +222,10 @@ func selectAndSortTrains(trains Trains, arrival int, departure int, criteria str
 }
 
 func limitTrains(trains Trains) (newTrains Trains) {
+	maximumTrainCount := 3
 	for _, v := range trains {
 		newTrains = append(newTrains, v)
-		if len(newTrains) == 3 {
+		if len(newTrains) == maximumTrainCount {
 			return newTrains
 		}
 	}
