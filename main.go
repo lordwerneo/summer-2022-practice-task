@@ -97,10 +97,6 @@ func main() {
 }
 
 func FindTrains(departureStation, arrivalStation, criteria string) (Trains, error) {
-	if err := checkCriteria(criteria); err != nil {
-		return nil, err
-	}
-
 	departure, err := checkStation(departureStation)
 	if err != nil {
 		if errors.Is(err, BadStationInput) {
@@ -115,6 +111,10 @@ func FindTrains(departureStation, arrivalStation, criteria string) (Trains, erro
 			return nil, BadArrivalStationInput
 		}
 		return nil, EmptyArrivalStation
+	}
+
+	if err := checkCriteria(criteria); err != nil {
+		return nil, err
 	}
 
 	var trains Trains
