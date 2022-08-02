@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -63,6 +64,7 @@ func TestFindTrainsSuccess(t *testing.T) {
 		})
 	}
 }
+
 func TestFindTrainsNil(t *testing.T) {
 	assert := assert.New(t)
 	testsNIL := map[string]struct {
@@ -169,6 +171,111 @@ func TestFindTrainsNegative(t *testing.T) {
 			if assert.Error(gotErr) && assert.Nil(got) {
 				assert.EqualError(gotErr, tc.wantErr)
 			}
+		})
+	}
+}
+
+func TestFindTrainsByViktor(t *testing.T) {
+	testsTable := map[string]struct {
+		arrStation    string
+		depStation    string
+		criteria      string
+		expected      Trains
+		expectedError error
+	}{
+		"successful_price": {
+			depStation: "1902",
+			arrStation: "1929",
+			criteria:   "price",
+			expected: Trains{
+				{TrainID: 1177, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 164.65, ArrivalTime: time.Date(0, time.January, 1, 10, 25, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 16, 36, 0, 0, time.UTC)},
+				{TrainID: 1178, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 164.65, ArrivalTime: time.Date(0, time.January, 1, 10, 25, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 16, 36, 0, 0, time.UTC)},
+				{TrainID: 1141, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 176.77, ArrivalTime: time.Date(0, time.January, 1, 12, 15, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 16, 48, 0, 0, time.UTC)},
+			},
+			expectedError: nil,
+		},
+		"successful_arrival": {
+			depStation: "1902",
+			arrStation: "1929",
+			criteria:   "arrival-time",
+			expected: Trains{
+				{TrainID: 978, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 258.53, ArrivalTime: time.Date(0, time.January, 1, 4, 15, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 13, 10, 0, 0, time.UTC)},
+				{TrainID: 1316, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 209.73, ArrivalTime: time.Date(0, time.January, 1, 5, 55, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 13, 52, 0, 0, time.UTC)},
+				{TrainID: 2201, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 280, ArrivalTime: time.Date(0, time.January, 1, 6, 15, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 14, 55, 0, 0, time.UTC)},
+			},
+			expectedError: nil,
+		},
+		"successful_departure": {
+			depStation: "1902",
+			arrStation: "1929",
+			criteria:   "departure-time",
+			expected: Trains{
+				{TrainID: 1386, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 220.49, ArrivalTime: time.Date(0, time.January, 1, 8, 30, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 13, 3, 0, 0, time.UTC)},
+				{TrainID: 978, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 258.53, ArrivalTime: time.Date(0, time.January, 1, 4, 15, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 13, 10, 0, 0, time.UTC)},
+				{TrainID: 1316, DepartureStationID: 1902, ArrivalStationID: 1929, Price: 209.73, ArrivalTime: time.Date(0, time.January, 1, 5, 55, 0, 0, time.UTC), DepartureTime: time.Date(0, time.January, 1, 13, 52, 0, 0, time.UTC)},
+			},
+			expectedError: nil,
+		},
+		"wrong_criteria": {
+			depStation:    "1902",
+			arrStation:    "1929",
+			criteria:      "awef",
+			expected:      nil,
+			expectedError: errors.New("unsupported criteria"),
+		},
+		"absent_depStationId": {
+			depStation:    "",
+			arrStation:    "1929",
+			criteria:      "departure",
+			expected:      nil,
+			expectedError: errors.New("empty departure station"),
+		},
+		"absent_arrStation": {
+			depStation:    "1902",
+			arrStation:    "",
+			criteria:      "departure",
+			expected:      nil,
+			expectedError: errors.New("empty arrival station"),
+		},
+		"wrong_depStation": {
+			depStation:    "12",
+			arrStation:    "1929",
+			criteria:      "price",
+			expected:      nil,
+			expectedError: nil,
+		},
+		"wrong_arrStation": {
+			depStation:    "1902",
+			arrStation:    "11",
+			criteria:      "price",
+			expected:      nil,
+			expectedError: nil,
+		},
+		"bad_arrStation_input": {
+			depStation:    "1902",
+			arrStation:    "serg",
+			criteria:      "price",
+			expected:      nil,
+			expectedError: errors.New("bad arrival station input"),
+		},
+		"bad_depStation_input": {
+			depStation:    "serg",
+			arrStation:    "1922",
+			criteria:      "price",
+			expected:      nil,
+			expectedError: errors.New("bad departure station input"),
+		},
+	}
+
+	for name, testCase := range testsTable {
+		t.Run(name, func(tt *testing.T) {
+			result, err := FindTrains(testCase.depStation, testCase.arrStation, testCase.criteria)
+			if testCase.expectedError != nil {
+				assert.EqualError(tt, err, testCase.expectedError.Error())
+			} else {
+				assert.NoError(tt, err)
+			}
+			assert.Equal(tt, testCase.expected, result)
 		})
 	}
 }
