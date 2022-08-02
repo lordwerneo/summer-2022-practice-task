@@ -12,6 +12,21 @@ import (
 	"time"
 )
 
+const (
+	maxTrainCount = 3
+	minTrainCount = 1
+)
+
+var (
+	UnsupportedCriteria      = errors.New("unsupported criteria")
+	EmptyStation             = errors.New("empty station")
+	EmptyDepartureStation    = errors.New("empty departure station")
+	EmptyArrivalStation      = errors.New("empty arrival station")
+	BadStationInput          = errors.New("bad station input")
+	BadDepartureStationInput = errors.New("bad departure station input")
+	BadArrivalStationInput   = errors.New("bad arrival station input")
+)
+
 type Trains []Train
 
 type Train struct {
@@ -59,22 +74,25 @@ func (t *Train) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-var (
-	UnsupportedCriteria      = errors.New("unsupported criteria")
-	EmptyStation             = errors.New("empty station")
-	EmptyDepartureStation    = errors.New("empty departure station")
-	EmptyArrivalStation      = errors.New("empty arrival station")
-	BadStationInput          = errors.New("bad station input")
-	BadDepartureStationInput = errors.New("bad departure station input")
-	BadArrivalStationInput   = errors.New("bad arrival station input")
-)
+func (t Trains) sortTrains(criteria string) {
+	sort.SliceStable(t, func(i, j int) bool {
+		switch criteria {
+		case "price":
+			return t[i].Price < t[j].Price
+		case "departure-time":
+			return t[i].DepartureTime.Before(t[j].DepartureTime)
+		default:
+			return t[i].ArrivalTime.Before(t[j].ArrivalTime)
+		}
+	})
+}
 
 func main() {
 	var (
 		departureStation string
 		arrivalStation   string
 		criteria         string
-		result           []Train
+		result           Trains
 	)
 	fmt.Println("Enter departure station ID")
 	departureStation = readUserInput()
@@ -113,7 +131,7 @@ func FindTrains(departureStation, arrivalStation, criteria string) (Trains, erro
 		return nil, EmptyArrivalStation
 	}
 
-	if err := checkCriteria(criteria); err != nil {
+	if err = checkCriteria(criteria); err != nil {
 		return nil, err
 	}
 
@@ -174,34 +192,6 @@ func checkStation(station string) (int, error) {
 	return result, nil
 }
 
-func sortByPrice(trains Trains) Trains {
-	sort.Slice(trains, func(i, j int) bool {
-		if trains[i].Price == trains[j].Price {
-			return trains[i].TrainID < trains[j].TrainID
-		}
-		return trains[i].Price < trains[j].Price
-	})
-	return trains
-}
-
-func sortByTime(trains Trains, criteria string) Trains {
-	sort.Slice(trains, func(i, j int) bool {
-		if criteria == "departure-time" {
-			if trains[i].DepartureTime.Equal(trains[j].DepartureTime) {
-				return trains[i].TrainID < trains[j].TrainID
-			}
-			return trains[i].DepartureTime.Before(trains[j].DepartureTime)
-		} else {
-			if trains[i].ArrivalTime.Equal(trains[j].ArrivalTime) {
-				return trains[i].TrainID < trains[j].TrainID
-			}
-			return trains[i].ArrivalTime.Before(trains[j].ArrivalTime)
-		}
-	})
-
-	return trains
-}
-
 func selectAndSortTrains(trains Trains, arrival int, departure int, criteria string) (sortedTrains Trains) {
 	for _, v := range trains {
 		if v.DepartureStationID == departure && v.ArrivalStationID == arrival {
@@ -209,25 +199,12 @@ func selectAndSortTrains(trains Trains, arrival int, departure int, criteria str
 		}
 	}
 
-	minimalTrainCount := 1
-	if len(sortedTrains) > minimalTrainCount {
-		switch criteria {
-		case "price":
-			sortedTrains = sortByPrice(sortedTrains)
-		default:
-			sortedTrains = sortByTime(sortedTrains, criteria)
-		}
+	if len(sortedTrains) > minTrainCount {
+		sortedTrains.sortTrains(criteria)
 	}
-	return limitTrains(sortedTrains)
-}
 
-func limitTrains(trains Trains) (newTrains Trains) {
-	maximumTrainCount := 3
-	for _, v := range trains {
-		newTrains = append(newTrains, v)
-		if len(newTrains) == maximumTrainCount {
-			return newTrains
-		}
+	if len(sortedTrains) > maxTrainCount {
+		return sortedTrains[:3]
 	}
-	return newTrains
+	return sortedTrains
 }
